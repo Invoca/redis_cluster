@@ -58,16 +58,27 @@ describe "client" do
       ]
       allow_any_instance_of(Redis).to receive(:cluster).and_return(cluster_nodes)
 
-      redis_7002 = double("7002")
-      allow(redis_7002).to receive(:get).and_raise(Redis::CommandError.new("MOVED 15495 127.0.0.1:7006"))
-      @redis.instance_variable_get("@pool").nodes.find {|node| node.instance_variable_get("@options")[:port] == 7002 }.instance_variable_set("@connection", redis_7002)
+      @redis_7002 = double("7002")
 
       redis_7006 = double("7006")
       allow(redis_7006).to receive(:get).and_return(@value)
       @redis.instance_variable_get("@pool").nodes.find {|node| node.instance_variable_get("@options")[:port] == 7006 }.instance_variable_set("@connection", redis_7006)
     end
 
-    it "redetect nodes and get right redis value" do
+    it "redetect nodes and get right redis value on MOVED response" do
+      allow(@redis_7002).to receive(:get).and_raise(Redis::CommandError.new("MOVED 15495 127.0.0.1:7006"))
+      @redis.instance_variable_get("@pool").nodes.find {|node| node.instance_variable_get("@options")[:port] == 7002 }.instance_variable_set("@connection", @redis_7002)
+
+      expect(@redis.get("a")).to eq @value
+
+      node_7006 = pool_nodes.find {|node| node.instance_variable_get("@options")[:port] == 7006 }
+      expect(node_7006.has_slot? 15495).to be_truthy
+    end
+
+    it "redetect nodes and get right redis value on Error response" do
+      allow(@redis_7002).to receive(:get).and_raise(Redis::CannotConnectError.new("Error connecting to Redis"))
+      @redis.instance_variable_get("@pool").nodes.find {|node| node.instance_variable_get("@options")[:port] == 7002 }.instance_variable_set("@connection", @redis_7002)
+
       expect(@redis.get("a")).to eq @value
 
       node_7006 = pool_nodes.find {|node| node.instance_variable_get("@options")[:port] == 7006 }

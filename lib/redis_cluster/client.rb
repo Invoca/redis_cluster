@@ -44,9 +44,9 @@ module RedisCluster
       # The first is for intermittent failures like "host unreachable" or
       # timeouts. These are retried a number of times equal to @retry_count.
       #
-      # The second is when it receives an `ASK` or `MOVED` error response from
+      # The second is when it receives an `ASK`, `MOVED`, or 'Error' error response from
       # Redis. In this case the client will complete re-enter its execution
-      # loop and retry the command after any necessary prework (if `MOVED`, it
+      # loop and retry the command after any necessary prework (if `MOVED` or 'Error', it
       # will attempt to reload the node pool first). This will only ever be
       # retried one time (see notes below). This loop uses Ruby's `retry`
       # syntax for blocks, so keep an eye out for that in the code below.
@@ -64,18 +64,20 @@ module RedisCluster
           # Getting an error while executing may be an indication that we've
           # lost the node that we were talking to and in that case it makes
           # sense to try a different node and maybe reload our node pool (if
-          # the new node issues a `MOVE`).
+          # the new node issues a `MOVE` or a ConnectError).
           try_random_node = attempt > 0
 
           return @pool.execute(method, args, {asking: asking, random_node: try_random_node}, &block)
         end
-      rescue Redis::CommandError => e
+      # rescue Redis::CannotConnectError, Redis::CommandError => e
+      rescue Redis::CommandError, Redis::CannotConnectError => e
+        puts e.inspect
         unless @logger.nil?
           @logger.error("redis_cluster: Received error: #{e}")
         end
 
         # This is a special condition to protect against a misbehaving library
-        # or server. After we've gotten one ASK or MOVED and retried once,
+        # or server. After we've gotten one ASK, MOVED, or Error and retried once,
         # we'll never do so a second time. Receiving two of any operations in a
         # row is probably indicative of a problem and we don't want to get
         # stuck in an infinite retry loop.
@@ -92,9 +94,9 @@ module RedisCluster
           asking = true
           retry
 
-        when 'MOVED'
+        when 'MOVED', 'Error'
           unless @logger.nil?
-            @logger.info("redis_cluster: Received MOVED; retrying operation (#{e})")
+            @logger.info("redis_cluster: Received #{err_code}; retrying operation (#{e})")
           end
 
           # `MOVED` indicates a permanent redirect which means that our slot
