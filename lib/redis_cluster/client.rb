@@ -69,9 +69,7 @@ module RedisCluster
 
           return @pool.execute(method, args, {asking: asking, random_node: try_random_node}, &block)
         end
-      # rescue Redis::CannotConnectError, Redis::CommandError => e
       rescue Redis::CommandError, Redis::CannotConnectError => e
-        puts e.inspect
         unless @logger.nil?
           @logger.error("redis_cluster: Received error: #{e}")
         end
@@ -242,14 +240,13 @@ module RedisCluster
     # attempt is raised to the user.
     def retry_intermittent_loop
       last_error = nil
-
       for attempt in 0..(@retry_count) do
         begin
           yield(attempt)
 
           # Fall through on any success.
           return
-        rescue Errno::EACCES, Redis::TimeoutError, Redis::CannotConnectError => e
+        rescue Errno::EACCES, Redis::TimeoutError => e
           last_error = e
 
           unless @logger.nil?
