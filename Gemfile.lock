@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    redis_cluster (0.3.4.pre.0)
+    redis_cluster (0.4.0.pre.1)
       hiredis (~> 0.6)
       redis (>= 3.2, <= 4.5.1)
 
