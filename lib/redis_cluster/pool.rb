@@ -21,18 +21,18 @@ module RedisCluster
       @nodes.delete_if { |n| !names.include?(n.name) }
     end
 
-    # other_options:
+    # node_options:
     #   asking
     #   random_node
-    def execute(method, args, other_options, &block)
+    def execute(method, args, node_options, **kwargs, &block)
       return send(method, args, &block) if Configuration::SUPPORT_MULTI_NODE_METHODS.include?(method.to_s)
 
       key = key_by_command(method, args)
       raise CommandNotSupportedError.new(method.upcase) if key.nil?
 
-      node = other_options[:random_node] ? random_node : node_by(key)
-      node.asking if other_options[:asking]
-      node.execute(method, args, &block)
+      node = node_options[:random_node] ? random_node : node_by(key)
+      node.asking if node_options[:asking]
+      node.execute(method, args, **kwargs, &block)
     end
 
     def keys(args, &block)
