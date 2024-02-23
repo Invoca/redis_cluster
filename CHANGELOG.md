@@ -4,7 +4,7 @@ Inspired by [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 Note: this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.5] - Unreleased
+## [0.3.5] - 2024-02-23
 ### Fixed
 - Fixed a Ruby 3 compatibility bug where keyword args could not be passed through Node#execute.
 
