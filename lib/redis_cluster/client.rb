@@ -35,7 +35,7 @@ module RedisCluster
       reload_pool_nodes
     end
 
-    def execute(method, args, &block)
+    def execute(method, args, **kwargs, &block)
       asking = false
       retried = false
 
@@ -67,7 +67,7 @@ module RedisCluster
           # the new node issues a `MOVE` or a ConnectError).
           try_random_node = attempt > 0
 
-          return @pool.execute(method, args, {asking: asking, random_node: try_random_node}, &block)
+          return @pool.execute(method, args, {asking: asking, random_node: try_random_node}, **kwargs, &block)
         end
       rescue Redis::CommandError, Redis::CannotConnectError => e
         unless @logger.nil?
@@ -109,13 +109,13 @@ module RedisCluster
     end
 
     Configuration.method_names.each do |method_name|
-      define_method method_name do |*args, &block|
-        execute(method_name, args, &block)
+      define_method method_name do |*args, **kwargs, &block|
+        execute(method_name, args, **kwargs, &block)
       end
     end
 
-    def method_missing(method, *args, &block)
-      execute(method, args, &block)
+    def method_missing(method, *args, **kwargs, &block)
+      execute(method, args, **kwargs, &block)
     end
 
     # Add default argument to keys to match redis client interface
