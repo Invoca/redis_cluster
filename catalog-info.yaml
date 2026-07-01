@@ -28,6 +28,6 @@ metadata:
 spec:
   type: library
   lifecycle: production
-  owner: sre-core
+  owner: octothorpe
   system: database-operations
   dependsOn: []
